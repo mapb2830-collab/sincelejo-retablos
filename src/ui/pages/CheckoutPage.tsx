@@ -80,7 +80,7 @@ export function CheckoutPage() {
   const onSharePhotos = async () => {
     if (!prepared) return;
     try {
-      await navigator.share({ files: photos, text: `Foto de referencia del pedido ${prepared.order.reference}` });
+      await navigator.share({ files: photos, text: 'Foto de referencia de mi pedido' });
       setPhotoStatus('shared');
     } catch (err) {
       // Si el cliente cierra el menú de compartir no es un error.

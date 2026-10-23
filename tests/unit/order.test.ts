@@ -25,7 +25,7 @@ describe('pedido por WhatsApp', () => {
     if (!result.ok) return;
     const m = result.message;
     expect(m.split('\n')).toEqual([
-      'Hola, quiero hacer este pedido (SR-261023-ABCD):',
+      'Hola, quiero hacer este pedido:',
       '',
       '1. Retablo rectangular – 30 × 40 cm x2 = $60.000',
       '   Personalización: Foto de grado / con nombre "Ana & Luis"',

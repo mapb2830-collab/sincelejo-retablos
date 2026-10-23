@@ -223,7 +223,7 @@ for (const shareSupported of [true, false]) {
       await box.getByTestId('share-photo').click();
       await expect(box.getByRole('status')).toBeVisible();
       const shared = await page.evaluate(() => (window as unknown as { __shared: unknown[] }).__shared);
-      expect(shared).toEqual([{ files: ['mi foto.png'], text: expect.stringMatching(/^Foto de referencia del pedido SR-/) }]);
+      expect(shared).toEqual([{ files: ['mi foto.png'], text: 'Foto de referencia de mi pedido' }]);
     } else {
       await expect(box.getByTestId('share-photo')).toHaveCount(0);
       await expect(box).toContainText('Adjúntala en el chat de WhatsApp');

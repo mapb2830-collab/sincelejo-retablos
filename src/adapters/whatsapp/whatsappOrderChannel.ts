@@ -21,7 +21,7 @@ export function buildOrderMessage(snapshot: OrderSnapshot): string {
   const oneLine = (text: string) => n(text).replace(/\s*\n\s*/g, ' / ');
   const c = snapshot.customer;
   const out: string[] = [];
-  out.push(`Hola, quiero hacer este pedido (${snapshot.reference}):`);
+  out.push('Hola, quiero hacer este pedido:');
   out.push('');
   snapshot.lines.forEach((l, i) => {
     const price = l.subtotal === null ? 'por cotizar' : formatCOP(l.subtotal);
