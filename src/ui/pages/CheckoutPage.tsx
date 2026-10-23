@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon';
 import { PageHeader } from '../components/Layout';
 import { OrderSteps } from '../components/OrderSteps';
 import { useCart } from '../hooks/CartContext';
+import { canShareFiles, referenceImagesFor, shareApiAvailable } from '../referenceImages';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { href, navigate } from '../router/router';
 
@@ -21,6 +22,7 @@ export function CheckoutPage() {
   const [missing, setMissing] = useState<string[]>([]);
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   const [tracked, setTracked] = useState<OrderSnapshot | null>(null);
+  const [photoStatus, setPhotoStatus] = useState<'idle' | 'shared' | 'error'>('idle');
 
   const set = <K extends keyof CustomerDetails>(key: K, value: CustomerDetails[K]) => {
     setCustomer((c) => ({ ...c, [key]: value }));
@@ -64,12 +66,28 @@ export function CheckoutPage() {
     services.orderHistory.saveLast(result.order);
     setTracked(result.order);
     setPreparedFor(cartKey);
+    setPhotoStatus('idle');
     window.setTimeout(() => document.getElementById('pedido-listo')?.focus(), 0);
   };
 
   const onOpenWhatsApp = () => {
     if (prepared) setTracked(markWhatsAppOpened(tracked ?? prepared.order, services.orderHistory));
   };
+  const imageNames = prepared ? prepared.order.lines.map((l) => l.referenceImageName).filter(Boolean) : [];
+  const photos = referenceImagesFor(imageNames);
+  // Solo se ofrece el envío directo si están todas las fotos en memoria y el navegador puede compartir archivos.
+  const canSendPhotos = imageNames.length > 0 && photos.length === new Set(imageNames).size && canShareFiles(photos);
+  const onSharePhotos = async () => {
+    if (!prepared) return;
+    try {
+      await navigator.share({ files: photos, text: `Foto de referencia del pedido ${prepared.order.reference}` });
+      setPhotoStatus('shared');
+    } catch (err) {
+      // Si el cliente cierra el menú de compartir no es un error.
+      if (!(err instanceof DOMException && err.name === 'AbortError')) setPhotoStatus('error');
+    }
+  };
+
   const onDeclareSent = () => {
     if (tracked) setTracked(markSentByCustomer(tracked, services.orderHistory));
   };
@@ -93,10 +111,14 @@ export function CheckoutPage() {
 
           <fieldset className="box">
             <legend>Entrega</legend>
-            <div className="choice-group">
+            <div className="choice-group choice-group--3">
               <label className={`choice ${customer.delivery === 'acordar' ? 'is-active' : ''}`}>
                 <input type="radio" name="delivery" checked={customer.delivery === 'acordar'} onChange={() => set('delivery', 'acordar')} />
                 <span><strong>Acordar por WhatsApp</strong><small>Definimos la entrega en la conversación.</small></span>
+              </label>
+              <label className={`choice ${customer.delivery === 'recoger' ? 'is-active' : ''}`}>
+                <input type="radio" name="delivery" checked={customer.delivery === 'recoger'} onChange={() => set('delivery', 'recoger')} />
+                <span><strong>Paso a recogerlo</strong><small>Te indican por WhatsApp dónde y cuándo recogerlo.</small></span>
               </label>
               <label className={`choice ${customer.delivery === 'domicilio' ? 'is-active' : ''}`}>
                 <input type="radio" name="delivery" checked={customer.delivery === 'domicilio'} onChange={() => set('delivery', 'domicilio')} />
@@ -189,9 +211,30 @@ export function CheckoutPage() {
                   <Icon name="whatsapp" /> Abrir WhatsApp y enviar pedido
                 </a>
                 <p className="field__help">
-                  Al abrir WhatsApp, revisa el mensaje y pulsa enviar. El pedido queda confirmado solo cuando {business.name} te responda. Si elegiste
-                  una imagen de referencia, adjúntala en el chat.
+                  Al abrir WhatsApp, revisa el mensaje y pulsa enviar. El pedido queda confirmado solo cuando {business.name} te responda.
                 </p>
+                {imageNames.length > 0 && (
+                  <div className="ready__photo" data-testid="reference-photo">
+                    {canSendPhotos ? (
+                      <>
+                        <button type="button" className="btn btn--outline btn--lg btn--block" onClick={onSharePhotos} data-testid="share-photo">
+                          <Icon name="image" /> {photos.length > 1 ? 'Enviar las fotos de referencia a WhatsApp' : 'Enviar la foto de referencia a WhatsApp'}
+                        </button>
+                        <p className="field__help">
+                          Después de enviar el mensaje, pulsa aquí, elige WhatsApp y luego el chat de {business.name}.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="field__help">
+                        {photos.length < new Set(imageNames).size && shareApiAvailable()
+                          ? 'La foto ya no está disponible en esta página (se recargó). Adjúntala en el chat de WhatsApp con el clip (📎) o vuelve a elegirla en el producto.'
+                          : 'Desde este dispositivo no se puede enviar la foto automáticamente. Adjúntala en el chat de WhatsApp con el clip (📎).'}
+                      </p>
+                    )}
+                    {photoStatus === 'shared' && <p className="alert alert--ok" role="status">Listo, se abrió el envío de la foto. Revisa que llegue al chat de {business.name}.</p>}
+                    {photoStatus === 'error' && <p className="alert alert--warn" role="alert">No se pudo compartir la foto. Adjúntala en el chat de WhatsApp con el clip (📎).</p>}
+                  </div>
+                )}
                 {tracked?.whatsappOpenedAt && tracked.status === 'carrito-preparado' && (
                   <div className="alert alert--warn" data-testid="declare-sent">
                     <p>¿Enviaste el mensaje en WhatsApp? Abrir WhatsApp no lo envía automáticamente.</p>

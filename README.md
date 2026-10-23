@@ -10,7 +10,7 @@ carrito de compras y pedidos por WhatsApp. Preparada para incorporar pagos en l�
 | Catálogo con los precios oficiales del PDF (8 categorías) | ✅ Terminado |
 | Filtros por categoría y búsqueda por nombre o medida | ✅ Terminado |
 | Carrito: agregar, cantidades, eliminar, vaciar, subtotales y total, guardado 7 días en el navegador | ✅ Terminado |
-| Personalización: instrucciones, modelo de celular (forros), imagen de referencia validada | ✅ Terminado (la imagen se envía por WhatsApp, no se sube) |
+| Personalización: instrucciones, modelo de celular (forros), imagen de referencia validada | ✅ Terminado (la imagen no se sube: en celulares un botón la comparte directo a WhatsApp; en computador se adjunta en el chat) |
 | Pedido por WhatsApp con resumen completo (wa.me/573013804470) | ✅ Terminado |
 | Seguimiento inicial del último pedido preparado (en el navegador del cliente). Abrir WhatsApp no cuenta como enviado: el cliente lo declara con "Ya envié el mensaje" | ✅ Terminado |
 | Novedades: vasos, mugs, forrado de paredes y objetos, promocionales | ✅ Sección preparada, **sin precio ni disponibilidad** |

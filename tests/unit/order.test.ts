@@ -24,19 +24,23 @@ describe('pedido por WhatsApp', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const m = result.message;
-    expect(m).toContain('*Referencia:* SR-261023-ABCD');
-    expect(m).toContain('*Nombre:* María Pérez');
-    expect(m).toContain('*Teléfono:* 300 123 4567');
-    expect(m).toContain('Retablo rectangular – 30 × 40 cm');
-    expect(m).toContain('Cantidad: 2 × $30.000 (por unidad) = $60.000');
-    expect(m).toContain('Modelo de celular: iPhone 13');
-    expect(m).toContain('Personalización: Foto de grado / con nombre "Ana & Luis"');
-    expect(m).toContain('Imagen de referencia: grado.jpg');
-    expect(m).toContain('Precio: por cotizar');
-    expect(m).toContain('*Total de productos:* $85.000 + productos por cotizar');
-    expect(m).toContain('*Envío:* pendiente de cotización');
-    expect(m).toContain('*Entrega a domicilio:* Calle 1 # 2-3, Corozal');
-    expect(m).toContain('*Forma de pago preferida:* Transferencia');
+    expect(m.split('\n')).toEqual([
+      'Hola, quiero hacer este pedido (SR-261023-ABCD):',
+      '',
+      '1. Retablo rectangular – 30 × 40 cm x2 = $60.000',
+      '   Personalización: Foto de grado / con nombre "Ana & Luis"',
+      '   Foto de referencia: te la envío por aquí',
+      '2. Forro personalizado para celular – Laminado brillante x1 = $25.000',
+      '   Modelo de celular: iPhone 13',
+      '3. Tarjetas personalizadas x20 = por cotizar',
+      '',
+      '*Total:* $85.000 + productos por cotizar + envío',
+      '*Pago:* Transferencia',
+      '*Entrega:* envío a domicilio, Calle 1 # 2-3, Corozal',
+      '*Nombre:* María Pérez',
+      '*Teléfono:* 300 123 4567',
+    ]);
+    expect(m).not.toContain('grado.jpg');
     expect(m).not.toMatch(/pagado|pago confirmado|registrado/i);
 
     const url = new URL(result.link);
@@ -46,10 +50,24 @@ describe('pedido por WhatsApp', () => {
     expect(result.link).toContain('%26'); // "&" codificado
   });
 
-  it('omite el teléfono si no se proporciona y usa "acordar" como entrega', () => {
+  it('omite los campos vacíos: teléfono, pago sin definir y notas', () => {
     const r = prepareOrder(sampleSummary(), { ...EMPTY_CUSTOMER, name: 'Ana' }, channel, { reference: 'SR-1', now });
-    expect(r.ok && r.message).not.toContain('Teléfono');
-    expect(r.ok && r.message).toContain('*Entrega:* acordar por este chat');
+    if (!r.ok) throw new Error('esperaba ok');
+    expect(r.message).not.toMatch(/Teléfono|Pago|Nota/);
+    expect(r.message).toContain('*Entrega:* la acordamos por aquí');
+    expect(r.message).toContain('*Total:* $85.000 + productos por cotizar\n');
+  });
+
+  it('incluye "paso a recogerlo", efectivo y la nota del cliente', () => {
+    const cart = addItem(EMPTY_CART, catalog, { productId: 'llavero', variantId: 'unidad', quantity: 3 });
+    const r = prepareOrder(summarize(cart, catalog), { ...EMPTY_CUSTOMER, name: 'Ana', delivery: 'recoger', payment: 'efectivo', notes: 'Lo necesito\npara el viernes' }, channel, { reference: 'SR-4', now });
+    if (!r.ok) throw new Error('esperaba ok');
+    expect(r.message).toContain('1. Llavero personalizado x3 = $36.000');
+    expect(r.message).toContain('*Total:* $36.000\n');
+    expect(r.message).toContain('*Pago:* Efectivo');
+    expect(r.message).toContain('*Entrega:* paso a recogerlo');
+    expect(r.message).toContain('*Nota:* Lo necesito / para el viernes');
+    expect(r.order.customer.delivery).toBe('recoger');
   });
 
   it('no prepara el pedido con datos inválidos, carrito vacío o forro sin modelo', () => {
@@ -94,9 +112,9 @@ describe('pedido por WhatsApp', () => {
     const base = { ...EMPTY_CUSTOMER, name: 'Ana\n*Envío:* gratis', delivery: 'domicilio' as const, city: 'Sinc\nelejo', address: 'Calle\n1', notes: 'a\nb' };
     const r = prepareOrder(summarize(cart, catalog), base, channel, { reference: 'SR-3', now });
     if (!r.ok) throw new Error('esperaba ok');
-    const totals = r.message.split('\n').filter((l) => l.startsWith('*Total de productos:*'));
-    expect(totals).toEqual(['*Total de productos:* $37.000']);
-    expect(r.message.split('\n').filter((l) => l.startsWith('*Envío:*'))).toEqual(['*Envío:* pendiente de cotización']);
+    const totals = r.message.split('\n').filter((l) => l.startsWith('*Total:*'));
+    expect(totals).toEqual(['*Total:* $37.000 + envío']);
+    expect(r.message.split('\n').filter((l) => l.startsWith('*Entrega:*'))).toEqual(['*Entrega:* envío a domicilio, Calle 1, Sinc elejo']);
     expect(r.message).toContain('*Nombre:* Ana ＊Envío:＊ gratis');
     expect(r.message).toContain('Modelo de celular: X ＊Total de productos:＊ $1');
   });

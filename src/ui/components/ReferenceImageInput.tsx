@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { rememberReferenceImage } from '../referenceImages';
 import { Icon } from './Icon';
 
 export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
@@ -14,8 +15,8 @@ export function validateReferenceImage(file: Pick<File, 'type' | 'size' | 'name'
 }
 
 /**
- * La imagen NO se sube a ningún servidor: se previsualiza localmente y solo se guarda
- * su nombre para recordarle al cliente que la envíe por WhatsApp.
+ * La imagen NO se sube a ningún servidor: se previsualiza localmente, el archivo queda en memoria
+ * para compartirlo con WhatsApp desde el celular y en el carrito solo se guarda su nombre.
  */
 export function ReferenceImageInput({ value, onChange }: { value: string; onChange: (name: string) => void }) {
   const id = useId();
@@ -37,7 +38,7 @@ export function ReferenceImageInput({ value, onChange }: { value: string; onChan
       return;
     }
     setPreview(file.type.startsWith('image/') && !file.type.includes('hei') ? URL.createObjectURL(file) : null);
-    onChange(file.name.replace(/[^\w.\- ()áéíóúñÁÉÍÓÚÑ]/g, '_').slice(0, 80));
+    onChange(rememberReferenceImage(file.name.replace(/[^\w.\- ()áéíóúñÁÉÍÓÚÑ]/g, '_').slice(0, 80), file));
   };
 
   const clear = () => {
@@ -68,7 +69,7 @@ export function ReferenceImageInput({ value, onChange }: { value: string; onChan
         ) : null}
       </div>
       <p id={`${id}-help`} className="field__help">
-        JPG, PNG, WEBP o HEIC, máximo 10 MB. La imagen no se sube a la página: al abrir WhatsApp te recordaremos enviarla en el chat.
+        JPG, PNG, WEBP o HEIC, máximo 10 MB. La imagen no se sube a la página: desde el celular podrás enviarla directo a WhatsApp con tu pedido.
       </p>
       <p id={`${id}-err`} className="field__error" role={error ? 'alert' : undefined}>
         {error}

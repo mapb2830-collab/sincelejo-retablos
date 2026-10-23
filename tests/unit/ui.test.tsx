@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../src/ui/App';
 import { validateReferenceImage } from '../../src/ui/components/ReferenceImageInput';
+import { referenceImagesFor, rememberReferenceImage } from '../../src/ui/referenceImages';
 
 // jsdom no implementa <dialog>.showModal
 beforeEach(() => {
@@ -35,5 +36,16 @@ describe('interfaz', () => {
     expect(validateReferenceImage({ name: 'a.png', type: 'image/png', size: 11 * 1024 * 1024 })).toMatch(/10 MB/);
     expect(validateReferenceImage({ name: 'a.heic', type: '', size: 10 })).toBeNull();
     expect(validateReferenceImage({ name: 'a.svg', type: 'image/svg+xml', size: 10 })).toMatch(/Formato/);
+  });
+});
+
+describe('fotos de referencia en memoria', () => {
+  it('no reemplaza una foto distinta con el mismo nombre', () => {
+    const a = new File(['a'], 'image.jpg', { type: 'image/jpeg', lastModified: 1 });
+    const b = new File(['bb'], 'image.jpg', { type: 'image/jpeg', lastModified: 2 });
+    expect(rememberReferenceImage('image.jpg', a)).toBe('image.jpg');
+    expect(rememberReferenceImage('image.jpg', b)).toBe('image (2).jpg');
+    expect(rememberReferenceImage('image.jpg', a)).toBe('image.jpg'); // la misma foto conserva su nombre
+    expect(referenceImagesFor(['image.jpg', 'image (2).jpg', 'image.jpg'])).toEqual([a, b]);
   });
 });

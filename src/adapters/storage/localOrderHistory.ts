@@ -20,7 +20,7 @@ export function isValidOrderSnapshot(data: unknown): data is OrderSnapshot {
   const c = o.customer as Record<string, unknown> | undefined;
   if (!c || typeof c !== 'object') return false;
   if (!['name', 'phone', 'city', 'address', 'notes'].every((k) => isStr(c[k]))) return false;
-  if (!['domicilio', 'acordar'].includes(c.delivery as string)) return false;
+  if (!['domicilio', 'recoger', 'acordar'].includes(c.delivery as string)) return false;
   if (!['transferencia', 'efectivo', 'por-definir'].includes(c.payment as string)) return false;
   if (!Array.isArray(o.lines) || o.lines.length === 0 || o.lines.length > 100) return false;
   return o.lines.every((l: unknown) => {

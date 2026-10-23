@@ -34,6 +34,8 @@ describe('historial de pedidos', () => {
 
   it('acepta un pedido válido', () => {
     expect(isValidOrderSnapshot(validOrder)).toBe(true);
+    expect(isValidOrderSnapshot({ ...validOrder, customer: { ...validOrder.customer, delivery: 'recoger' } })).toBe(true);
+    expect(isValidOrderSnapshot({ ...validOrder, customer: { ...validOrder.customer, delivery: 'otro' } })).toBe(false);
     localStorage.setItem('sr.lastOrder.v1', JSON.stringify(validOrder));
     expect(createLocalOrderHistory().loadLast()?.reference).toBe('SR-261023-ABCD');
   });

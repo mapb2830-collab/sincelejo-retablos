@@ -356,6 +356,7 @@ fieldset.box legend { font-family: var(--font-display); font-weight: 700; font-s
 .mini-lines small { color: var(--muted); display: block; }
 .mini-lines li > span:last-child { font-weight: 700; white-space: nowrap; }
 .ready { grid-column: 1 / -1; outline: none; border: 2px solid var(--wa); }
+.ready__photo { display: grid; gap: 8px; }
 .ready__preview { white-space: pre-wrap; word-break: break-word; background: #ecfdf3; border-radius: 12px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86rem; max-height: 320px; overflow: auto; }
 .alert { border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
 .alert--error { background: #fff1f0; color: var(--danger); font-weight: 600; outline: none; }

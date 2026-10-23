@@ -43,6 +43,8 @@ src/
 - Textos de clientes: se recortan, se eliminan caracteres de control y React escapa todo al pintar (no se usa `dangerouslySetInnerHTML`).
 - Las imágenes de referencia no se suben: se validan (tipo y 10 MB) y solo se guarda el nombre del archivo.
 - Los datos del cliente no salen del navegador salvo en el mensaje que el propio cliente envía por WhatsApp.
+- El mensaje es corto: productos (variante, cantidad, subtotal), personalización, total (+ envío si es a domicilio), pago, entrega (domicilio, paso a recogerlo o acordar) y nombre. Los campos vacíos se omiten.
+- La foto de referencia vive solo en memoria (`src/ui/referenceImages.ts`). Un enlace `wa.me` no puede llevar archivos, así que en celulares se usa la Web Share API (`navigator.share({ files })`): el cliente elige WhatsApp y el chat del negocio. Donde no hay soporte (computadores) o si se recargó la página, se le pide adjuntarla en el chat.
 - Enlaces externos con `rel="noopener noreferrer"`.
 
 ## Estados del pedido

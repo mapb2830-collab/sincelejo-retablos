@@ -29,7 +29,7 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from].includes(to);
 }
 
-export type DeliveryMethod = 'domicilio' | 'acordar';
+export type DeliveryMethod = 'domicilio' | 'recoger' | 'acordar';
 export type PaymentPreference = 'transferencia' | 'efectivo' | 'por-definir';
 
 export interface CustomerDetails {
@@ -58,7 +58,7 @@ export function normalizeCustomer(c: CustomerDetails): CustomerDetails {
   return {
     name: sanitizeLine(c.name, 60),
     phone: sanitizeLine(c.phone, 20).replace(/[^\d+ ]/g, ''),
-    delivery: c.delivery === 'domicilio' ? 'domicilio' : 'acordar',
+    delivery: c.delivery === 'domicilio' || c.delivery === 'recoger' ? c.delivery : 'acordar',
     city: sanitizeLine(c.city, 60),
     address: sanitizeLine(c.address, 120),
     payment: (['transferencia', 'efectivo', 'por-definir'] as const).includes(c.payment) ? c.payment : 'por-definir',

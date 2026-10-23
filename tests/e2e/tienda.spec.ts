@@ -141,12 +141,13 @@ test('flujo completo: agregar, modificar, eliminar, totales y WhatsApp', async (
   await page.getByRole('button', { name: /Preparar mensaje/ }).click();
   const preview = page.getByTestId('whatsapp-preview');
   await expect(preview).toContainText('*Nombre:* María Pérez');
-  await expect(preview).toContainText('Retablo rectangular – 30 × 40 cm');
-  await expect(preview).toContainText('Cantidad: 1 × $30.000 (por unidad) = $30.000');
+  await expect(preview).toContainText('1. Retablo rectangular – 30 × 40 cm x1 = $30.000');
+  await expect(preview).toContainText('Forro personalizado para celular – Laminado brillante x1 = $25.000');
   await expect(preview).toContainText('Modelo de celular: Samsung Galaxy A15');
   await expect(preview).toContainText('Personalización: Foto de grado con el nombre Ana & Luis');
-  await expect(preview).toContainText('*Total de productos:* $55.000');
-  await expect(preview).toContainText('*Envío:* pendiente de cotización');
+  await expect(preview).toContainText('*Total:* $55.000 + envío');
+  await expect(preview).toContainText('*Pago:* Transferencia');
+  await expect(preview).toContainText('*Entrega:* envío a domicilio, Calle 20 # 10-5, Sincelejo');
 
   const link = page.getByTestId('send-whatsapp');
   const hrefValue = await link.getAttribute('href');
@@ -190,6 +191,84 @@ test('la imagen de referencia rechaza formatos no permitidos', async ({ page }) 
   await expect(page.getByRole('dialog').getByText('Formato no permitido')).toBeVisible();
   await input.setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) });
   await expect(page.getByRole('dialog').getByText('foto.png')).toBeVisible();
+});
+
+for (const shareSupported of [true, false]) {
+  test(`la foto de referencia ${shareSupported ? 'se comparte directo a WhatsApp' : 'se adjunta a mano si no se puede compartir'}`, async ({ page }) => {
+    await page.addInitScript((supported) => {
+      const w = window as unknown as { __shared: { files: string[]; text: string }[] };
+      w.__shared = [];
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: supported ? (d: { files?: File[] }) => Boolean(d.files?.length) : undefined });
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async (d: { files?: File[]; text?: string }) => { w.__shared.push({ files: (d.files ?? []).map((f) => f.name), text: d.text ?? '' }); },
+      });
+    }, shareSupported);
+    await page.reload(); // la página ya se abrió en beforeEach: recargar aplica el script de arriba
+    await page.goto('./#/catalogo/llaveros');
+    await page.getByRole('button', { name: /Agregar al carrito/ }).click();
+    await page.getByRole('dialog').locator('input[type="file"]').setInputFiles({ name: 'mi foto.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) });
+    await page.getByRole('dialog').getByRole('button', { name: /Agregar al carrito/ }).click();
+    await page.evaluate(() => { location.hash = '#/pedido'; }); // sin recargar: la foto vive en memoria
+    await page.getByLabel(/^Nombre/).fill('Ana');
+    await page.getByText('Paso a recogerlo', { exact: true }).click();
+    await page.getByText('Efectivo', { exact: true }).click();
+    await page.getByRole('button', { name: /Preparar mensaje/ }).click();
+    const preview = page.getByTestId('whatsapp-preview');
+    await expect(preview).toContainText('Foto de referencia: te la envío por aquí');
+    await expect(preview).toContainText('*Entrega:* paso a recogerlo');
+    await expect(preview).toContainText('*Pago:* Efectivo');
+    const box = page.getByTestId('reference-photo');
+    if (shareSupported) {
+      await box.getByTestId('share-photo').click();
+      await expect(box.getByRole('status')).toBeVisible();
+      const shared = await page.evaluate(() => (window as unknown as { __shared: unknown[] }).__shared);
+      expect(shared).toEqual([{ files: ['mi foto.png'], text: expect.stringMatching(/^Foto de referencia del pedido SR-/) }]);
+    } else {
+      await expect(box.getByTestId('share-photo')).toHaveCount(0);
+      await expect(box).toContainText('Adjúntala en el chat de WhatsApp');
+    }
+  });
+}
+
+test('dos fotos con el mismo nombre se comparten las dos', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __shared: number[][] };
+    w.__shared = [];
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: (d: { files?: File[] }) => Boolean(d.files?.length) });
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async (d: { files?: File[] }) => { w.__shared.push((d.files ?? []).map((f) => f.size)); } });
+  });
+  await page.reload();
+  for (const [hash, size] of [['#/catalogo/llaveros', 4], ['#/catalogo/polaroid', 8]] as const) {
+    await page.evaluate((h) => { location.hash = h; }, hash);
+    await page.getByRole('button', { name: /Agregar al carrito/ }).click();
+    await page.getByRole('dialog').locator('input[type="file"]').setInputFiles({ name: 'image.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(size, 1) });
+    await page.getByRole('dialog').getByRole('button', { name: /Agregar al carrito/ }).click();
+  }
+  await page.evaluate(() => { location.hash = '#/pedido'; });
+  await page.getByLabel(/^Nombre/).fill('Ana');
+  await page.getByRole('button', { name: /Preparar mensaje/ }).click();
+  await page.getByTestId('share-photo').click();
+  await expect(page.getByTestId('share-photo')).toHaveText(/las fotos/);
+  const shared = await page.evaluate(() => (window as unknown as { __shared: number[][] }).__shared);
+  expect(shared).toEqual([[4, 8]]);
+});
+
+test('después de recargar, avisa que la foto ya no está y pide adjuntarla', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+  });
+  await page.reload();
+  await page.evaluate(() => { location.hash = '#/catalogo/llaveros'; });
+  await page.getByRole('button', { name: /Agregar al carrito/ }).click();
+  await page.getByRole('dialog').locator('input[type="file"]').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) });
+  await page.getByRole('dialog').getByRole('button', { name: /Agregar al carrito/ }).click();
+  await page.goto('./#/pedido');
+  await page.reload();
+  await page.getByLabel(/^Nombre/).fill('Ana');
+  await page.getByRole('button', { name: /Preparar mensaje/ }).click();
+  await expect(page.getByTestId('reference-photo')).toContainText('La foto ya no está disponible');
+  await expect(page.getByTestId('share-photo')).toHaveCount(0);
 });
 
 test('no hay desbordamiento horizontal y el menú móvil funciona', async ({ page, isMobile }) => {
