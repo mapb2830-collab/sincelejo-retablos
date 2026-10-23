@@ -4,8 +4,22 @@ import type { OrderChannel } from '../../ports';
 
 const PAYMENT_LABEL = { transferencia: 'Transferencia', efectivo: 'Efectivo', 'por-definir': 'Por definir' } as const;
 
+/**
+ * Neutraliza los símbolos de formato de WhatsApp (*negrita*, _cursiva_, ~tachado~, `mono`) en textos
+ * escritos por el cliente, sustituyéndolos por variantes de ancho completo que se ven igual pero no dan formato.
+ */
+export function neutralizeFormatting(text: string): string {
+  return text.replace(/[*_~`]/g, (ch) => ({ '*': '＊', _: '＿', '~': '～', '`': '｀' })[ch] ?? ch);
+}
+
 /** Construye el texto del pedido. Solo texto plano: WhatsApp no interpreta HTML. */
-export function buildOrderMessage(order: OrderSnapshot): string {
+export function buildOrderMessage(snapshot: OrderSnapshot): string {
+  const n = neutralizeFormatting;
+  const order: OrderSnapshot = {
+    ...snapshot,
+    customer: { ...snapshot.customer, name: n(snapshot.customer.name), phone: n(snapshot.customer.phone), city: n(snapshot.customer.city), address: n(snapshot.customer.address), notes: n(snapshot.customer.notes) },
+    lines: snapshot.lines.map((l) => ({ ...l, instructions: n(l.instructions), phoneModel: n(l.phoneModel), referenceImageName: n(l.referenceImageName) })),
+  };
   const c = order.customer;
   const out: string[] = [];
   out.push('Hola, Sincelejo Retablos. Quiero hacer este pedido:');

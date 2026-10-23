@@ -60,7 +60,9 @@ export function CheckoutPage() {
     }
     setMissing([]);
     setPrepared(result);
-    setTracked(null);
+    // Se guarda ya como "carrito preparado" para que Seguimiento lo muestre aunque aún no se abra WhatsApp.
+    services.orderHistory.saveLast(result.order);
+    setTracked(result.order);
     setPreparedFor(cartKey);
     window.setTimeout(() => document.getElementById('pedido-listo')?.focus(), 0);
   };

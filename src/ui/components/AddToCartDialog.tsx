@@ -11,8 +11,17 @@ import { QuantityInput } from './QuantityInput';
 import { ReferenceImageInput } from './ReferenceImageInput';
 
 /** Diálogo modal para personalizar el producto antes de agregarlo al carrito. */
-export function AddToCartDialog({ product, variant, onClose }: { product: Product; variant: Variant; onClose: () => void }) {
+export function AddToCartDialog({ product, variant, onClose: notifyClose }: { product: Product; variant: Variant; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // Elemento que abrió el diálogo: recibe de nuevo el foco al cerrar (teclado y lectores de pantalla).
+  const opener = useRef<HTMLElement | null>(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  const onClose = () => {
+    notifyClose();
+    const target = opener.current;
+    window.setTimeout(() => {
+      if (target?.isConnected) target.focus();
+    }, 0);
+  };
   const titleId = useId();
   const { add } = useCart();
   const toast = useToast();

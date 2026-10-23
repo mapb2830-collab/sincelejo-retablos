@@ -317,3 +317,31 @@ test('menú móvil: Escape devuelve el foco, Tab no se escapa y el enlace actual
   await expect(page.locator('#menu-movil')).toBeHidden();
   expect(await page.evaluate(() => document.body.classList.contains('no-scroll'))).toBe(false);
 });
+
+test('al cerrar el diálogo el foco vuelve al botón que lo abrió', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Prueba de teclado solo en escritorio');
+  await page.goto('./#/catalogo/retablos');
+  const opener = page.locator('[data-variant="40x40"]').getByRole('button', { name: /Agregar/ });
+  await opener.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(opener).toBeFocused();
+  await opener.press('Enter');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
+  await expect(opener).toBeFocused();
+  await opener.press('Enter');
+  await page.getByRole('dialog').getByRole('button', { name: /Agregar al carrito/ }).click();
+  await expect(opener).toBeFocused();
+});
+
+test('seguimiento muestra el pedido preparado antes de abrir WhatsApp', async ({ page }) => {
+  await page.goto('./#/catalogo/polaroid');
+  await page.getByRole('button', { name: /Agregar al carrito/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Agregar al carrito/ }).click();
+  await page.goto('./#/pedido');
+  await page.getByLabel(/^Nombre/).fill('Ana');
+  await page.getByRole('button', { name: /Preparar mensaje/ }).click();
+  await page.getByRole('button', { name: 'Ver seguimiento del pedido' }).click();
+  await expect(page.getByTestId('tracking-status')).toHaveText('Estado: Carrito preparado');
+});

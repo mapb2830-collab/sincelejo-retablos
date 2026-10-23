@@ -30,7 +30,7 @@ src/
 │                  payment.ts (estados del pago para la fase 2) · money.ts (formato COP)
 ├── ports/         Contratos: CartRepository, OrderHistory, OrderChannel, PaymentGateway
 ├── adapters/      Implementaciones: whatsapp/ · storage/ (localStorage) · payments/
-├── application/   Casos de uso (prepareOrder, markSentToBusiness) y composición (services.ts)
+├── application/   Casos de uso (prepareOrder, markWhatsAppOpened, markSentByCustomer) y composición (services.ts)
 ├── ui/            React: router/, hooks/ (contexto del carrito, avisos), components/, pages/
 └── styles/        global.css (sistema visual)
 ```
@@ -48,4 +48,12 @@ src/
 ## Estados del pedido
 
 `carrito-preparado → enviado-al-negocio → confirmado-por-negocio → pago-confirmado` (o `cancelado`).
-En la fase 1 la página solo registra los dos primeros, en el navegador del cliente. "Confirmado" y "pago confirmado" solo podrá marcarlos el backend de la fase 2.
+En la fase 1 la página solo registra los dos primeros, en el navegador del cliente:
+
+1. Al preparar el mensaje, el pedido se guarda como **carrito preparado**.
+2. Abrir WhatsApp **no** cambia el estado (no hay forma de saber si el cliente pulsó "Enviar"); solo se anota la hora en `whatsappOpenedAt`.
+3. Si el cliente pulsa **"Ya envié el mensaje"**, pasa a **enviado al negocio** con `sentDeclaredByCustomer: true` y se muestra "(según indicaste)".
+
+"Confirmado por el negocio" y "pago confirmado" solo podrá marcarlos el backend de la fase 2. Los pedidos guardados se validan al leerlos (`isValidOrderSnapshot`); si están dañados se descartan.
+
+La interfaz tiene un `ErrorBoundary` alrededor del contenido de cada página: si una página falla, se muestra un mensaje con enlace a WhatsApp y el encabezado y el pie siguen funcionando.

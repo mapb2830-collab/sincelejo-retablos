@@ -15,6 +15,8 @@ function siteUrl(mode: string): Plugin {
         .replace(/\s*<meta property="og:url"[^>]*>/, '')
         .replace(/\s*<link rel="canonical"[^>]*>/, '')
         .replace(/\s*"url": "__SITE_URL__",/, '')
+        .replace(/\s*"logo": "__SITE_URL__[^"]*",/, '')
+        .replace(/\s*"image": "__SITE_URL__[^"]*",/, '')
         .replaceAll('__SITE_URL__', './');
     },
   };

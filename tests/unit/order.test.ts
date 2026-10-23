@@ -97,7 +97,8 @@ describe('pedido por WhatsApp', () => {
     const totals = r.message.split('\n').filter((l) => l.startsWith('*Total de productos:*'));
     expect(totals).toEqual(['*Total de productos:* $37.000']);
     expect(r.message.split('\n').filter((l) => l.startsWith('*Envío:*'))).toEqual(['*Envío:* pendiente de cotización']);
-    expect(r.message).toContain('*Nombre:* Ana *Envío:* gratis');
+    expect(r.message).toContain('*Nombre:* Ana ＊Envío:＊ gratis');
+    expect(r.message).toContain('Modelo de celular: X ＊Total de productos:＊ $1');
   });
 
   it('las transiciones de estado no permiten saltar a "pago confirmado"', () => {
