@@ -83,6 +83,7 @@ Para actualizar la página: edita, ejecuta `npm run test:all`, haz commit y `git
 - [docs/CATALOGO.md](docs/CATALOGO.md): cómo agregar productos, precios e imágenes.
 - [docs/PAGOS.md](docs/PAGOS.md): plan de integración de pagos (fase 2).
 - [docs/AUDITORIA.md](docs/AUDITORIA.md): informe de auditoría y resultados de pruebas.
+- [docs/INFORME-FINAL.md](docs/INFORME-FINAL.md): informe final de la primera entrega.
 
 ## Datos pendientes de confirmar por el negocio
 
