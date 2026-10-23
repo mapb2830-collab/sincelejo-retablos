@@ -1,3 +1,4 @@
+
 name: CI y despliegue en GitHub Pages
 
 on:
@@ -9,37 +10,46 @@ on:
 permissions:
   contents: read
 
-# No se cancela un despliegue en curso (recomendación de GitHub Pages).
+# No se cancela un despliegue en curso.
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   test-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pages: read
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+
       - run: npm ci
-      # Obtiene la URL real de Pages (subdirectorio, usuario.github.io o dominio propio).
+
+      # Obtiene la URL real de GitHub Pages.
       - id: pages
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
+
       - run: npm run typecheck
+
       - run: npm test
+
       - run: npm run build
         env:
           VITE_SITE_URL: ${{ steps.pages.outputs.base_url }}
+
       - run: npx playwright install --with-deps chromium
+
       - run: npm run test:e2e
         env:
           CI: 'true'
+
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
@@ -48,7 +58,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pages: write
       id-token: write
@@ -58,3 +68,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
