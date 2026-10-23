@@ -1,0 +1,13 @@
+{
+  "name": "Sincelejo Retablos",
+  "short_name": "Retablos",
+  "lang": "es-CO",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f5fc",
+  "theme_color": "#1a0b4f",
+  "icons": [
+    { "src": "images/brand/logo-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
