@@ -1,4 +1,6 @@
-import type { PaymentStatus } from '../../domain/payment';
+import { PAYMENT_STATUS_LABEL, type PaymentStatus } from '../../domain/payment';
+
+const PAYMENT_STATUSES = Object.keys(PAYMENT_STATUS_LABEL) as PaymentStatus[];
 import type { PaymentGateway } from '../../ports';
 
 /**
@@ -29,8 +31,8 @@ export function createHttpPaymentGateway(apiBaseUrl: string, fetchImpl: typeof f
     async getStatus(orderReference) {
       const res = await fetchImpl(`${base}/orders/${encodeURIComponent(orderReference)}/payment`);
       if (!res.ok) return 'error';
-      const data = (await res.json()) as { status?: PaymentStatus };
-      return data.status ?? 'error';
+      const data = (await res.json()) as { status?: unknown };
+      return PAYMENT_STATUSES.includes(data.status as PaymentStatus) ? (data.status as PaymentStatus) : 'error';
     },
   };
 }

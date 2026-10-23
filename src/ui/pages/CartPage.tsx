@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { imageFor } from '../../catalog';
-import { MAX_INSTRUCTIONS, MAX_PHONE_MODEL } from '../../domain/cart';
+import { MAX_INSTRUCTIONS, MAX_PHONE_MODEL, isValidPhoneModel } from '../../domain/cart';
 import { formatCOP } from '../../domain/money';
 import { UNIT_LABEL } from '../../domain/product';
 import { Icon } from '../components/Icon';
@@ -45,6 +45,7 @@ export function CartPage() {
           {summary.lines.map(({ line, product, variant, unitPrice, subtotal }) => {
             const img = imageFor(product, variant);
             const needsModel = product.required?.includes('modeloCelular');
+            const modelMissing = Boolean(needsModel) && !isValidPhoneModel(line.customization.phoneModel);
             return (
               <li key={line.id} className="cart-line" data-testid="cart-line">
                 {img && <img className="cart-line__img" src={`${base}${img.src}-480.webp`} alt="" width={96} height={128} loading="lazy" />}
@@ -63,8 +64,14 @@ export function CartPage() {
                         maxLength={MAX_PHONE_MODEL}
                         placeholder="Ej.: iPhone 13"
                         onBlur={(e) => setCustomization(line.id, { phoneModel: e.target.value })}
-                        aria-invalid={needsModel && !line.customization.phoneModel ? true : undefined}
+                        aria-invalid={modelMissing ? true : undefined}
+                        aria-describedby={modelMissing ? `${line.id}-model-err` : undefined}
                       />
+                      {modelMissing && (
+                        <span id={`${line.id}-model-err`} className="field__error">
+                          Escribe la marca y el modelo de tu celular.
+                        </span>
+                      )}
                     </label>
                   )}
                   <details className="cart-line__details" open={Boolean(line.customization.instructions)}>

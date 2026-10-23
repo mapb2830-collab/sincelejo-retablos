@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { MAX_INSTRUCTIONS, MAX_PHONE_MODEL } from '../../domain/cart';
+import { MAX_INSTRUCTIONS, MAX_PHONE_MODEL, isValidPhoneModel } from '../../domain/cart';
 import { formatCOP } from '../../domain/money';
 import type { Product, Variant } from '../../domain/product';
 import { useCart } from '../hooks/CartContext';
@@ -23,9 +23,11 @@ export function AddToCartDialog({ product, variant, onClose }: { product: Produc
   const [modelError, setModelError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Sin limpieza que llame a close(): en StrictMode (desarrollo) el efecto se ejecuta dos veces
+    // y el evento "close" asíncrono cerraría el diálogo recién abierto. Al desmontarse, el
+    // <dialog> sale del DOM y del top layer por sí solo.
     const dialog = ref.current;
     if (dialog && !dialog.open) dialog.showModal();
-    return () => dialog?.close();
   }, []);
 
   const wants = (f: Product['customization'][number]) => product.customization.includes(f);
@@ -33,7 +35,7 @@ export function AddToCartDialog({ product, variant, onClose }: { product: Produc
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (modelRequired && phoneModel.trim().length < 2) {
+    if (modelRequired && !isValidPhoneModel(phoneModel)) {
       setModelError('Escribe la marca y el modelo de tu celular.');
       return;
     }

@@ -21,16 +21,52 @@ export function Header({ route }: { route: Route }) {
   const { summary } = useCart();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setOpen(false), [route]);
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const close = (restoreFocus: boolean) => {
+      setOpen(false);
+      if (restoreFocus) buttonRef.current?.focus();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close(true);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      // Trampa de foco: el foco circula entre el botón del menú y los enlaces del menú.
+      const items = [buttonRef.current, ...Array.from(menuRef.current?.querySelectorAll<HTMLElement>('a') ?? [])].filter(
+        (x): x is HTMLElement => Boolean(x),
+      );
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (!items.includes(document.activeElement as HTMLElement)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    // Cualquier clic en un enlace del menú lo cierra (también el de la página actual, que no cambia la ruta).
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest('a')) setOpen(false);
+    };
+    const menu = menuRef.current;
     document.addEventListener('keydown', onKey);
+    menu?.addEventListener('click', onClick);
     document.body.classList.add('no-scroll');
-    menuRef.current?.querySelector<HTMLAnchorElement>('a')?.focus();
+    menu?.querySelector<HTMLAnchorElement>('a')?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
+      menu?.removeEventListener('click', onClick);
       document.body.classList.remove('no-scroll');
     };
   }, [open]);
@@ -62,7 +98,7 @@ export function Header({ route }: { route: Route }) {
               {summary.itemCount}
             </span>
           </a>
-          <button type="button" className="icon-btn menu-btn" aria-expanded={open} aria-controls="menu-movil" onClick={() => setOpen((o) => !o)}>
+          <button ref={buttonRef} type="button" className="icon-btn menu-btn" aria-expanded={open} aria-controls="menu-movil" onClick={() => setOpen((o) => !o)}>
             <Icon name={open ? 'close' : 'menu'} size={24} />
             <span className="sr-only">{open ? 'Cerrar menú' : 'Abrir menú'}</span>
           </button>

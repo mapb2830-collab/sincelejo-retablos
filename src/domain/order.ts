@@ -1,4 +1,4 @@
-import { sanitizeText, type CartSummary } from './cart';
+import { sanitizeLine, sanitizeText, type CartSummary } from './cart';
 
 /**
  * Estados del pedido. Solo "carrito-preparado" y "enviado-al-negocio" se registran
@@ -56,11 +56,11 @@ export type CustomerErrors = Partial<Record<keyof CustomerDetails, string>>;
 
 export function normalizeCustomer(c: CustomerDetails): CustomerDetails {
   return {
-    name: sanitizeText(c.name, 60).replace(/\s+/g, ' '),
-    phone: sanitizeText(c.phone, 20).replace(/[^\d+ ]/g, ''),
+    name: sanitizeLine(c.name, 60),
+    phone: sanitizeLine(c.phone, 20).replace(/[^\d+ ]/g, ''),
     delivery: c.delivery === 'domicilio' ? 'domicilio' : 'acordar',
-    city: sanitizeText(c.city, 60),
-    address: sanitizeText(c.address, 120),
+    city: sanitizeLine(c.city, 60),
+    address: sanitizeLine(c.address, 120),
     payment: (['transferencia', 'efectivo', 'por-definir'] as const).includes(c.payment) ? c.payment : 'por-definir',
     notes: sanitizeText(c.notes, 400),
   };
@@ -118,6 +118,13 @@ export interface OrderSnapshot {
   hasQuoteItems: boolean;
   /** En la fase 1 el envío siempre se cotiza aparte. */
   shipping: 'pendiente-de-cotizacion';
+  /**
+   * Momento en que el cliente abrió WhatsApp con el pedido. NO prueba que lo haya enviado:
+   * el estado solo pasa a "enviado-al-negocio" cuando el cliente lo indica expresamente.
+   */
+  whatsappOpenedAt?: string;
+  /** true cuando el estado "enviado-al-negocio" lo declaró el propio cliente. */
+  sentDeclaredByCustomer?: boolean;
 }
 
 export function buildOrderSnapshot(

@@ -172,7 +172,7 @@ export const products: Product[] = [
     id: 'tarjetas-personalizadas',
     category: 'otros',
     name: 'Tarjetas personalizadas',
-    description: 'Ideales para todo tipo de ocasión. El precio depende del diseño y la cantidad: pide tu cotización.',
+    description: 'Ideales para todo tipo de ocasión. Precio por cotización: pídela por WhatsApp.',
     display: 'selector',
     customization: ['instrucciones', 'imagenReferencia'],
     customizationHint: 'Cuéntanos la ocasión, la cantidad y el diseño que imaginas.',

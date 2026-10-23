@@ -4,6 +4,12 @@ export const MIN_QTY = 1;
 export const MAX_QTY = 999;
 export const MAX_INSTRUCTIONS = 500;
 export const MAX_PHONE_MODEL = 60;
+export const MIN_PHONE_MODEL = 2;
+
+/** Regla única para el modelo de celular (diálogo, carrito y validación del pedido). */
+export function isValidPhoneModel(value: string): boolean {
+  return value.trim().length >= MIN_PHONE_MODEL;
+}
 
 export interface Customization {
   instructions: string;
@@ -55,6 +61,11 @@ export function clampQuantity(value: unknown): number {
   return Math.min(MAX_QTY, Math.max(MIN_QTY, Math.trunc(n)));
 }
 
+/** Texto de una sola línea: los saltos de línea se convierten en espacios. */
+export function sanitizeLine(value: unknown, max: number): string {
+  return sanitizeText(typeof value === 'string' ? value.replace(/[\r\n\u2028\u2029]+/g, ' ') : value, max).replace(/\s{2,}/g, ' ');
+}
+
 export function sanitizeText(value: unknown, max: number): string {
   if (typeof value !== 'string') return '';
   // Elimina caracteres de control (excepto saltos de línea) y recorta.
@@ -65,8 +76,8 @@ export function sanitizeText(value: unknown, max: number): string {
 export function normalizeCustomization(c: Partial<Customization> | undefined): Customization {
   return {
     instructions: sanitizeText(c?.instructions, MAX_INSTRUCTIONS),
-    phoneModel: sanitizeText(c?.phoneModel, MAX_PHONE_MODEL),
-    referenceImageName: sanitizeText(c?.referenceImageName, 120),
+    phoneModel: sanitizeLine(c?.phoneModel, MAX_PHONE_MODEL),
+    referenceImageName: sanitizeLine(c?.referenceImageName, 120),
   };
 }
 
@@ -149,13 +160,17 @@ export function summarize(cart: Cart, catalog: CatalogLookup): CartSummary {
 export function restoreCart(raw: unknown, catalog: CatalogLookup): Cart {
   if (!raw || typeof raw !== 'object' || !Array.isArray((raw as Cart).lines)) return EMPTY_CART;
   const lines: CartLine[] = [];
+  const usedIds = new Set<string>();
   for (const l of (raw as { lines: unknown[] }).lines.slice(0, 100)) {
     if (!l || typeof l !== 'object') continue;
     const r = l as Record<string, unknown>;
     if (typeof r.productId !== 'string' || typeof r.variantId !== 'string') continue;
     if (!catalog.find(r.productId, r.variantId)) continue;
+    let id = typeof r.id === 'string' && r.id.length > 0 && r.id.length <= 40 ? r.id : newLineId();
+    while (usedIds.has(id)) id = newLineId(); // ids repetidos harían que una línea modifique a otra
+    usedIds.add(id);
     lines.push({
-      id: typeof r.id === 'string' && r.id.length <= 40 ? r.id : newLineId(),
+      id,
       productId: r.productId,
       variantId: r.variantId,
       quantity: clampQuantity(r.quantity),
@@ -169,7 +184,7 @@ export function restoreCart(raw: unknown, catalog: CatalogLookup): Cart {
 export function missingRequiredFields(summary: CartSummary): { lineId: string; productName: string; field: 'modeloCelular' }[] {
   const out: { lineId: string; productName: string; field: 'modeloCelular' }[] = [];
   for (const l of summary.lines) {
-    if (l.product.required?.includes('modeloCelular') && !l.line.customization.phoneModel) {
+    if (l.product.required?.includes('modeloCelular') && !isValidPhoneModel(l.line.customization.phoneModel)) {
       out.push({ lineId: l.line.id, productName: `${l.product.name} – ${l.variant.label}`, field: 'modeloCelular' });
     }
   }

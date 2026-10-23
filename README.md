@@ -12,7 +12,7 @@ carrito de compras y pedidos por WhatsApp. Preparada para incorporar pagos en l�
 | Carrito: agregar, cantidades, eliminar, vaciar, subtotales y total, guardado 7 días en el navegador | ✅ Terminado |
 | Personalización: instrucciones, modelo de celular (forros), imagen de referencia validada | ✅ Terminado (la imagen se envía por WhatsApp, no se sube) |
 | Pedido por WhatsApp con resumen completo (wa.me/573013804470) | ✅ Terminado |
-| Seguimiento inicial del último pedido preparado (en el navegador del cliente) | ✅ Terminado |
+| Seguimiento inicial del último pedido preparado (en el navegador del cliente). Abrir WhatsApp no cuenta como enviado: el cliente lo declara con "Ya envié el mensaje" | ✅ Terminado |
 | Novedades: vasos, mugs, forrado de paredes y objetos, promocionales | ✅ Sección preparada, **sin precio ni disponibilidad** |
 | Pagos en línea (Wompi / Mercado Pago) | ⏳ **No implementado.** Arquitectura y contrato listos: ver [docs/PAGOS.md](docs/PAGOS.md) |
 | Registro de pedidos en un servidor, confirmación por el negocio | ⏳ Fase 2 (requiere backend) |
@@ -31,7 +31,7 @@ npm run build          # compilación de producción en dist/
 npm run preview        # sirve dist/ → http://localhost:4173
 npm test               # pruebas unitarias (Vitest)
 npx playwright install chromium   # solo la primera vez, para pruebas de navegador
-npm run test:e2e       # pruebas en Chrome escritorio y móvil (Playwright; requiere `npm run build` antes)
+npm run test:e2e       # pruebas en Chrome escritorio y móvil (Playwright; requiere `npm run build` antes; levanta preview y dev)
 npm run test:all       # tipos + unitarias + build + navegador
 ```
 

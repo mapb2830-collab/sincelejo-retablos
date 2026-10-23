@@ -34,11 +34,22 @@ export function prepareOrder(
 }
 
 /**
- * Caso de uso: el cliente abrió WhatsApp con el pedido. Solo se registra en su navegador.
- * No significa que el negocio lo haya recibido ni confirmado.
+ * Caso de uso: el cliente abrió WhatsApp con el pedido. Abrir WhatsApp NO envía nada:
+ * el estado sigue en "carrito-preparado"; solo se anota cuándo se abrió.
  */
-export function markSentToBusiness(order: OrderSnapshot, history: OrderHistory): OrderSnapshot {
-  const next = canTransition(order.status, 'enviado-al-negocio') ? { ...order, status: 'enviado-al-negocio' as const } : order;
+export function markWhatsAppOpened(order: OrderSnapshot, history: OrderHistory, now: Date = new Date()): OrderSnapshot {
+  const next = { ...order, whatsappOpenedAt: now.toISOString() };
+  history.saveLast(next);
+  return next;
+}
+
+/**
+ * Caso de uso: el cliente declara que ya envió el mensaje. Se guarda como declaración del
+ * cliente (no como confirmación del negocio) y solo en su navegador.
+ */
+export function markSentByCustomer(order: OrderSnapshot, history: OrderHistory): OrderSnapshot {
+  if (!canTransition(order.status, 'enviado-al-negocio')) return order;
+  const next = { ...order, status: 'enviado-al-negocio' as const, sentDeclaredByCustomer: true };
   history.saveLast(next);
   return next;
 }

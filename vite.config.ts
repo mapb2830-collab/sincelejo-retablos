@@ -6,7 +6,18 @@ import react from '@vitejs/plugin-react';
 function siteUrl(mode: string): Plugin {
   const raw = loadEnv(mode, process.cwd(), 'VITE_').VITE_SITE_URL?.trim() ?? '';
   const url = raw && !raw.endsWith('/') ? `${raw}/` : raw;
-  return { name: 'site-url', transformIndexHtml: (html) => html.replaceAll('__SITE_URL__', url || './') };
+  return {
+    name: 'site-url',
+    transformIndexHtml(html) {
+      if (url) return html.replaceAll('__SITE_URL__', url);
+      // Sin URL pública (local): se quitan las etiquetas que exigen URL absoluta y se dejan relativas las demás.
+      return html
+        .replace(/\s*<meta property="og:url"[^>]*>/, '')
+        .replace(/\s*<link rel="canonical"[^>]*>/, '')
+        .replace(/\s*"url": "__SITE_URL__",/, '')
+        .replaceAll('__SITE_URL__', './');
+    },
+  };
 }
 
 // base './' produce rutas relativas: el mismo build funciona en la raíz de un

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { markSentByCustomer } from '../../application/prepareOrder';
 import { services } from '../../application/services';
 import { buildOrderMessage, whatsappLink } from '../../adapters/whatsapp/whatsappOrderChannel';
 import { upcomingLines } from '../../catalog';
@@ -26,11 +27,23 @@ export function TrackingPage() {
         {order ? (
           <div className="box" data-testid="tracking-order">
             <p className="eyebrow">Referencia {order.reference}</p>
-            <h2>Estado registrado: {ORDER_STATUS_LABEL[order.status]}</h2>
+            <h2 data-testid="tracking-status">
+              Estado: {ORDER_STATUS_LABEL[order.status]}
+              {order.status === 'enviado-al-negocio' && order.sentDeclaredByCustomer ? ' (según indicaste)' : ''}
+            </h2>
             <p className="field__help">
-              Preparado el {new Date(order.createdAt).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })}. La confirmación del
+              Preparado el {fmtDate(order.createdAt)}.
+              {order.whatsappOpenedAt && <> Abriste WhatsApp con este pedido el {fmtDate(order.whatsappOpenedAt)}.</>} La confirmación del
               pedido, del envío y del pago te llega por WhatsApp; esta página no la recibe automáticamente.
             </p>
+            {order.status === 'carrito-preparado' && (
+              <div className="alert alert--warn">
+                <p>Si ya enviaste el mensaje en WhatsApp, márcalo aquí para recordarlo.</p>
+                <button type="button" className="btn btn--outline btn--sm" onClick={() => setOrder(markSentByCustomer(order, services.orderHistory))}>
+                  Ya envié el mensaje
+                </button>
+              </div>
+            )}
             <OrderSteps current={order.status} />
             <ul className="mini-lines">
               {order.lines.map((l, i) => (
@@ -63,6 +76,10 @@ export function TrackingPage() {
       </div>
     </>
   );
+}
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' });
 }
 
 export function UpcomingPage() {
@@ -150,7 +167,7 @@ export function ContactPage() {
         </div>
       </div>
       <div className="container narrow">
-        <p className="note"><Icon name="info" /> Para conocer horarios o coordinar una visita, escríbenos por WhatsApp.</p>
+        <p className="note"><Icon name="info" /> Para cualquier consulta sobre tu pedido, escríbenos por WhatsApp.</p>
       </div>
     </>
   );
@@ -160,12 +177,12 @@ const faqs: { q: string; a: React.ReactNode }[] = [
   { q: '¿Cómo hago un pedido?', a: <>Agrega productos al carrito, completa tus datos en <a href={href.pedido}>Preparar pedido</a> y abre WhatsApp con el resumen. El pedido queda confirmado cuando el negocio te responde.</> },
   { q: '¿Cuáles son las formas de pago?', a: 'Transferencia o efectivo. Los datos para pagar te los da el negocio al confirmar el pedido. Por ahora no hay pagos en línea en la página.' },
   { q: '¿Hacen envíos a domicilio?', a: 'Sí. El costo del envío depende del lugar de destino y se cotiza por WhatsApp; no está incluido en el total del carrito.' },
-  { q: '¿Cómo envío la foto o el diseño?', a: 'En el carrito puedes describir tu diseño y elegir una imagen de referencia para recordarla. La imagen se envía directamente en el chat de WhatsApp.' },
+  { q: '¿Cómo envío la foto o el diseño?', a: 'Al agregar un producto puedes describir tu diseño y elegir una imagen de referencia; en el carrito puedes editar las instrucciones. La imagen se envía directamente en el chat de WhatsApp.' },
   { q: '¿Tienen forros para mi celular?', a: 'Indica la marca y el modelo al agregar el forro. Te confirmamos por WhatsApp si está disponible para tu modelo.' },
   { q: '¿Qué acabado tienen los retablos?', a: 'Se elaboran con acabado laminado, que brinda mayor durabilidad y un excelente realce de colores.' },
   { q: '¿Los pendones traen con qué colgarlos?', a: 'Sí, los pendones incluyen tubos para colgar.' },
   { q: '¿Cuántas tarjetas o stickers trae cada paquete?', a: 'Las tarjetas de presentación se venden por millar (1.000 unidades) y los stickers en paquetes de 100.' },
-  { q: '¿Cuánto cuestan las tarjetas personalizadas?', a: 'El precio depende del diseño y la cantidad. Pide tu cotización por WhatsApp.' },
+  { q: '¿Cuánto cuestan las tarjetas personalizadas?', a: 'El catálogo no publica un precio para las tarjetas personalizadas. Pide tu cotización por WhatsApp.' },
   { q: '¿Las fotos de pendones y tarjetas de presentación son trabajos reales?', a: 'Las imágenes marcadas como "Imagen ilustrativa" son referencias de diseño, no fotografías de trabajos entregados.' },
 ];
 

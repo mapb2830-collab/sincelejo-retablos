@@ -23,6 +23,8 @@
   --muted: #565072;
   --line: #e3dcf3;
   --danger: #b42318;
+  /* Borde de campos: 3,9:1 sobre blanco (WCAG 1.4.11 exige 3:1). */
+  --field-border: #857ca3;
   --warn-bg: #fff4d6;
 
   --grad-brand: linear-gradient(100deg, var(--magenta) 0%, var(--violet) 55%, var(--blue) 100%);
@@ -236,7 +238,7 @@ main { min-height: 60vh; outline: none; }
 
 .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 155px), 1fr)); }
 @media (min-width: 700px) { .grid { gap: 22px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); } }
-.grid--wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.grid--wide { grid-template-columns: minmax(0, 1fr) !important; max-width: 980px; }
 
 /* ---------- Tarjetas de producto ---------- */
 .picture { position: relative; margin: 0; overflow: hidden; background: var(--surface-2); }
@@ -251,7 +253,11 @@ main { min-height: 60vh; outline: none; }
 .card__size { display: inline-block; margin-left: 4px; color: var(--violet-600); white-space: nowrap; }
 .card__desc { color: var(--muted); font-size: .92rem; margin: 0 0 10px; }
 .card--wide { }
-@media (min-width: 700px) { .card--wide { flex-direction: row; } .card--wide .card__media { width: 46%; flex: none; } .card--wide .card__media .picture { height: 100%; aspect-ratio: auto; min-height: 340px; } }
+/* La tarjeta con selector ocupa una fila completa; la foto va al lado solo si queda espacio de sobra para el texto. */
+@media (min-width: 760px) { .card--wide { flex-direction: row; } .card--wide .card__body { padding: 26px 28px; gap: 10px; } .card--wide .card__media { width: 42%; flex: none; } .card--wide .card__media .picture { height: 100%; aspect-ratio: auto; min-height: 380px; } }
+.card__body { min-width: 0; }
+.variant__label { min-width: 0; overflow-wrap: anywhere; }
+.variant__price { white-space: nowrap; }
 .card__media { position: relative; }
 .card__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .thumbs { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; }
@@ -276,7 +282,7 @@ main { min-height: 60vh; outline: none; }
 .field__help { font-size: .87rem; color: var(--muted); margin: 0; }
 .field__error { font-size: .88rem; color: var(--danger); font-weight: 600; margin: 0; min-height: 0; }
 .field__error:empty { display: none; }
-.input { width: 100%; min-height: 46px; padding: 10px 14px; border: 1.5px solid #cfc6e6; border-radius: 12px; background: #fff; font-size: 1rem; }
+.input { width: 100%; min-height: 46px; padding: 10px 14px; border: 1.5px solid var(--field-border); border-radius: 12px; background: #fff; font-size: 1rem; }
 .input:focus { outline: none; border-color: var(--violet); box-shadow: 0 0 0 4px rgb(106 43 217 / .18); }
 .input[aria-invalid='true'] { border-color: var(--danger); }
 .textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
@@ -290,7 +296,7 @@ fieldset.box legend { font-family: var(--font-display); font-weight: 700; font-s
 .choice input { accent-color: var(--magenta); width: 18px; height: 18px; margin-top: 3px; flex: none; }
 .choice small { display: block; color: var(--muted); }
 .choice.is-active { border-color: var(--magenta); background: #fff3f9; }
-.qty { display: inline-flex; align-items: center; border: 1.5px solid #cfc6e6; border-radius: 999px; background: #fff; }
+.qty { display: inline-flex; align-items: center; border: 1.5px solid var(--field-border); border-radius: 999px; background: #fff; }
 .qty__btn { width: 42px; height: 42px; display: grid; place-items: center; border: 0; background: transparent; border-radius: 999px; cursor: pointer; color: var(--ink-800); }
 .qty__btn:hover:not(:disabled) { background: var(--surface-2); }
 .qty__btn:disabled { opacity: .35; cursor: not-allowed; }
@@ -355,6 +361,8 @@ fieldset.box legend { font-family: var(--font-display); font-weight: 700; font-s
 .alert--error { background: #fff1f0; color: var(--danger); font-weight: 600; outline: none; }
 .alert--error p { margin: 0 0 4px; }
 .alert--warn { background: var(--warn-bg); }
+.alert--warn p { margin: 0 0 8px; }
+.alert--ok { background: #ecfdf3; color: #14532d; font-weight: 600; }
 
 /* ---------- Estados vacíos, notas, pasos ---------- */
 .empty { text-align: center; padding: 48px 16px; max-width: 520px; margin: 24px auto; }
@@ -388,7 +396,10 @@ a.contact__card:hover { transform: translateY(-3px); color: var(--text); }
 .faq__a { padding: 0 18px 16px; color: var(--muted); }
 
 /* ---------- Pie de página ---------- */
-.footer { background: var(--ink-900); color: #d9d1f3; padding-block: 48px 24px; margin-top: 0; }
+.footer { background: var(--ink-900); color: #d9d1f3; padding-block: 48px 96px; margin-top: 0; }
+@media (min-width: 960px) { .footer { padding-bottom: 24px; } }
+/* En móvil, espacio para que el botón flotante de WhatsApp no tape el final del contenido. */
+@media (max-width: 959px) { main { padding-bottom: 72px; } }
 .footer a { color: #fff; }
 .footer a:hover { color: #ff8ac6; }
 .footer__grid { display: grid; gap: 32px; }

@@ -4,6 +4,8 @@ import type { OrderSnapshot } from '../domain/order';
 import type { PaymentStatus } from '../domain/payment';
 
 export interface CartRepository {
+  /** Clave de almacenamiento, para detectar cambios hechos en otra pestaña. */
+  readonly storageKey: string;
   /** Devuelve datos sin validar; el dominio los sanea con restoreCart(). */
   load(): unknown;
   save(cart: Cart): void;

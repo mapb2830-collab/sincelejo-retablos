@@ -1,9 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { markSentToBusiness, prepareOrder, type PrepareOrderResult } from '../../application/prepareOrder';
+import { markSentByCustomer, markWhatsAppOpened, prepareOrder, type PrepareOrderResult } from '../../application/prepareOrder';
 import { services } from '../../application/services';
 import { business } from '../../config/business';
 import { formatCOP } from '../../domain/money';
-import { EMPTY_CUSTOMER, type CustomerDetails, type CustomerErrors } from '../../domain/order';
+import { EMPTY_CUSTOMER, type CustomerDetails, type CustomerErrors, type OrderSnapshot } from '../../domain/order';
 import { Icon } from '../components/Icon';
 import { PageHeader } from '../components/Layout';
 import { OrderSteps } from '../components/OrderSteps';
@@ -20,6 +20,7 @@ export function CheckoutPage() {
   const [errors, setErrors] = useState<CustomerErrors>({});
   const [missing, setMissing] = useState<string[]>([]);
   const [prepared, setPrepared] = useState<Prepared | null>(null);
+  const [tracked, setTracked] = useState<OrderSnapshot | null>(null);
 
   const set = <K extends keyof CustomerDetails>(key: K, value: CustomerDetails[K]) => {
     setCustomer((c) => ({ ...c, [key]: value }));
@@ -59,12 +60,16 @@ export function CheckoutPage() {
     }
     setMissing([]);
     setPrepared(result);
+    setTracked(null);
     setPreparedFor(cartKey);
     window.setTimeout(() => document.getElementById('pedido-listo')?.focus(), 0);
   };
 
   const onOpenWhatsApp = () => {
-    if (prepared) markSentToBusiness(prepared.order, services.orderHistory);
+    if (prepared) setTracked(markWhatsAppOpened(tracked ?? prepared.order, services.orderHistory));
+  };
+  const onDeclareSent = () => {
+    if (tracked) setTracked(markSentByCustomer(tracked, services.orderHistory));
   };
 
   return (
@@ -169,7 +174,7 @@ export function CheckoutPage() {
               <p className="alert alert--warn">Cambiaste el carrito. Vuelve a preparar el mensaje para incluir los cambios.</p>
             ) : (
               <>
-                <OrderSteps current="carrito-preparado" />
+                <OrderSteps current={tracked?.status ?? 'carrito-preparado'} />
                 <pre className="ready__preview" data-testid="whatsapp-preview">{prepared.message}</pre>
                 <a
                   className="btn btn--whatsapp btn--lg btn--block"
@@ -185,6 +190,19 @@ export function CheckoutPage() {
                   Al abrir WhatsApp, revisa el mensaje y pulsa enviar. El pedido queda confirmado solo cuando {business.name} te responda. Si elegiste
                   una imagen de referencia, adjúntala en el chat.
                 </p>
+                {tracked?.whatsappOpenedAt && tracked.status === 'carrito-preparado' && (
+                  <div className="alert alert--warn" data-testid="declare-sent">
+                    <p>¿Enviaste el mensaje en WhatsApp? Abrir WhatsApp no lo envía automáticamente.</p>
+                    <button type="button" className="btn btn--outline btn--sm" onClick={onDeclareSent}>
+                      Sí, ya lo envié
+                    </button>
+                  </div>
+                )}
+                {tracked?.status === 'enviado-al-negocio' && (
+                  <p className="alert alert--ok" role="status">
+                    Anotamos que enviaste el pedido. {business.name} te confirmará por WhatsApp el pedido, el envío y el pago.
+                  </p>
+                )}
                 <button type="button" className="btn btn--ghost" onClick={() => navigate(href.seguimiento)}>
                   Ver seguimiento del pedido
                 </button>

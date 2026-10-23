@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { services } from '../../application/services';
 import { catalog } from '../../catalog';
 import {
@@ -19,7 +19,8 @@ type Action =
   | { type: 'qty'; lineId: string; quantity: number }
   | { type: 'custom'; lineId: string; customization: Partial<Customization> }
   | { type: 'remove'; lineId: string }
-  | { type: 'clear' };
+  | { type: 'clear' }
+  | { type: 'replace'; cart: Cart };
 
 function reducer(cart: Cart, action: Action): Cart {
   switch (action.type) {
@@ -33,6 +34,8 @@ function reducer(cart: Cart, action: Action): Cart {
       return removeLine(cart, action.lineId);
     case 'clear':
       return clearCart();
+    case 'replace':
+      return action.cart;
   }
 }
 
@@ -51,9 +54,26 @@ const CartContext = createContext<CartApi | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(reducer, undefined, () => restoreCart(services.cartRepository.load(), catalog));
 
+  const fromOtherTab = useRef(false);
   useEffect(() => {
+    // Si el cambio llegó desde otra pestaña ya está guardado: no se vuelve a escribir.
+    if (fromOtherTab.current) {
+      fromOtherTab.current = false;
+      return;
+    }
     services.cartRepository.save(cart);
   }, [cart]);
+
+  // Sincroniza el carrito entre pestañas del mismo navegador.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== services.cartRepository.storageKey) return;
+      fromOtherTab.current = true;
+      dispatch({ type: 'replace', cart: restoreCart(services.cartRepository.load(), catalog) });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const add = useCallback<CartApi['add']>(
     (productId, variantId, quantity, customization) => dispatch({ type: 'add', productId, variantId, quantity, customization }),

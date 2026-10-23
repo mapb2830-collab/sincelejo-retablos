@@ -8,6 +8,7 @@ const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function createLocalCartRepository(now: () => number = Date.now): CartRepository {
   return {
+    storageKey: KEY,
     load() {
       const data = readJSON(KEY) as { savedAt?: number; cart?: unknown } | null;
       if (!data || typeof data.savedAt !== 'number' || now() - data.savedAt > TTL_MS) return null;

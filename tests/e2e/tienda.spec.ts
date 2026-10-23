@@ -160,9 +160,14 @@ test('flujo completo: agregar, modificar, eliminar, totales y WhatsApp', async (
   expect(popup.url()).toContain('wa.me/573013804470');
   await popup.close();
 
+  // Abrir WhatsApp NO equivale a enviar el pedido.
+  await expect(page.getByTestId('declare-sent')).toBeVisible();
   await page.goto('./#/seguimiento');
-  await expect(page.getByTestId('tracking-order')).toContainText('Pedido enviado al negocio');
-  await expect(page.getByTestId('tracking-order')).not.toContainText('Estado registrado: Pago confirmado');
+  await expect(page.getByTestId('tracking-status')).toHaveText('Estado: Carrito preparado');
+  await expect(page.getByTestId('tracking-order')).toContainText('Abriste WhatsApp con este pedido');
+  await page.getByRole('button', { name: 'Ya envié el mensaje' }).click();
+  await expect(page.getByTestId('tracking-status')).toHaveText('Estado: Pedido enviado al negocio (según indicaste)');
+  await expect(page.getByTestId('tracking-order')).not.toContainText('Estado: Pago confirmado');
   expect(errors).toEqual([]);
 });
 
@@ -220,4 +225,95 @@ test('el teclado permite llegar al contenido y cerrar el diálogo con Escape', a
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('las tarjetas no recortan títulos ni precios en ningún ancho', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Se recorren anchos de tableta y escritorio de forma explícita');
+  const hashes = ['#/catalogo', '#/catalogo/forros', '#/catalogo/llaveros', '#/catalogo/polaroid', '#/catalogo/tarjetas-presentacion', '#/catalogo/stickers', '#/catalogo/otros', '#/catalogo/retablos', '#/catalogo/pendones'];
+  for (const width of [360, 768, 1024, 1366, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const hash of hashes) {
+      await page.goto(`./${hash}`);
+      const clipped = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const card of Array.from(document.querySelectorAll<HTMLElement>('[data-testid="product-card"]'))) {
+          const box = card.getBoundingClientRect();
+          for (const el of Array.from(card.querySelectorAll<HTMLElement>('.card__body *'))) {
+            if (!el.textContent?.trim() || el.children.length > 0 || el.closest('.sr-only')) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0) continue;
+            if (r.right > box.right + 0.5 || r.left < box.left - 0.5 || el.scrollWidth > el.clientWidth + 1) out.push(el.textContent.trim().slice(0, 40));
+          }
+        }
+        return out;
+      });
+      expect(clipped, `${hash} @ ${width}px`).toEqual([]);
+    }
+  }
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto('./#/catalogo/forros');
+  const prices = page.locator('.variant__price');
+  await expect(prices).toHaveText(['$25.000', '$25.000']);
+  await prices.first().scrollIntoViewIfNeeded();
+  await expect(prices.first()).toBeInViewport({ ratio: 1 });
+});
+
+test('un enlace mal codificado o un pedido guardado corrupto no dejan la página en blanco', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('./#/catalogo/%E0%A4%A');
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('No encontramos esta página');
+  await page.evaluate(() => localStorage.setItem('sr.lastOrder.v1', JSON.stringify({ reference: 'X', lines: [{}] })));
+  await page.goto('./#/seguimiento');
+  await page.reload();
+  await expect(page.getByText('Aún no has preparado un pedido en este navegador')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('el subtotal del diálogo se actualiza mientras se escribe la cantidad', async ({ page }) => {
+  await page.goto('./#/catalogo/llaveros');
+  await page.getByRole('button', { name: /Agregar al carrito/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Cantidad', { exact: true }).fill('25');
+  await expect(dialog.getByText('$300.000')).toBeVisible();
+});
+
+test('cada página restablece su descripción', async ({ page }) => {
+  await page.goto('./#/contacto');
+  const desc = page.locator('meta[name="description"]');
+  await expect(desc).toHaveAttribute('content', /WhatsApp al 301 380 4470/);
+  await page.goto('./#/preguntas-frecuentes');
+  await expect(desc).not.toHaveAttribute('content', /WhatsApp al 301 380 4470/);
+});
+
+test('el carrito se sincroniza entre pestañas', async ({ page, context }) => {
+  await page.goto('./#/carrito');
+  const other = await context.newPage();
+  await other.goto('./#/catalogo/polaroid');
+  await other.getByRole('button', { name: /Agregar al carrito/ }).click();
+  await other.getByRole('dialog').getByRole('button', { name: /Agregar al carrito/ }).click();
+  await expect(page.getByTestId('cart-count')).toHaveText('1');
+  await expect(page.getByTestId('cart-total')).toHaveText('$3.000');
+  await other.close();
+});
+
+test('menú móvil: Escape devuelve el foco, Tab no se escapa y el enlace actual lo cierra', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Solo móvil');
+  await page.goto('./#/contacto');
+  await page.reload();
+  const button = page.locator('button[aria-controls="menu-movil"]');
+  await button.click();
+  await page.keyboard.press('Escape');
+  await expect(button).toBeFocused();
+  await expect(page.locator('#menu-movil')).toBeHidden();
+  await button.click();
+  for (let i = 0; i < 30; i++) await page.keyboard.press('Tab');
+  const inside = await page.evaluate(() => {
+    const a = document.activeElement;
+    return !!a && (a.closest('#menu-movil') !== null || a.getAttribute('aria-controls') === 'menu-movil');
+  });
+  expect(inside).toBe(true);
+  await page.locator('#menu-movil').getByRole('link', { name: 'Contacto' }).click();
+  await expect(page.locator('#menu-movil')).toBeHidden();
+  expect(await page.evaluate(() => document.body.classList.contains('no-scroll'))).toBe(false);
 });

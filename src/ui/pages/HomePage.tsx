@@ -16,6 +16,8 @@ const heroFrames: ProductImage[] = [
   { src: 'images/products/forros/glitter', alt: 'Forros personalizados en glitter', kind: 'real' },
 ];
 
+const retabloCount = products.filter((p) => p.category === 'retablos').reduce((n, p) => n + p.variants.length, 0);
+
 const retabloSizes = products
   .filter((p) => p.category === 'retablos')
   .flatMap((p) => p.variants.map((v) => ({ group: p.group ?? '', label: v.label, price: v.price })));
@@ -48,7 +50,7 @@ export function HomePage() {
               </a>
             </div>
             <ul className="hero__facts">
-              <li><Icon name="sparkle" size={18} /> 14 medidas de retablo</li>
+              <li><Icon name="sparkle" size={18} /> {retabloCount} medidas de retablo</li>
               <li><Icon name="wallet" size={18} /> Transferencia o efectivo</li>
               <li><Icon name="truck" size={18} /> Envíos a domicilio</li>
             </ul>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { markSentToBusiness, prepareOrder } from '../../src/application/prepareOrder';
+import { markSentByCustomer, markWhatsAppOpened, prepareOrder } from '../../src/application/prepareOrder';
 import { buildOrderMessage, createWhatsAppOrderChannel, whatsappLink } from '../../src/adapters/whatsapp/whatsappOrderChannel';
 import { readWhatsAppNumber } from '../../src/config/env';
 import { catalog } from '../../src/catalog';
@@ -71,15 +71,33 @@ describe('pedido por WhatsApp', () => {
     expect(validateCustomer({ ...EMPTY_CUSTOMER, name: '  Jo  ' })).toEqual({});
   });
 
-  it('marcar como enviado solo avanza a "enviado-al-negocio" y lo guarda localmente', () => {
+  it('abrir WhatsApp no marca el pedido como enviado; solo la declaración del cliente lo hace', () => {
     const r = prepareOrder(sampleSummary(), { ...EMPTY_CUSTOMER, name: 'Ana' }, channel, { reference: 'SR-2', now });
     if (!r.ok) throw new Error('esperaba ok');
     let saved: OrderSnapshot | null = null;
     const history: OrderHistory = { saveLast: (o) => (saved = o), loadLast: () => saved, clear: () => (saved = null) };
     expect(r.order.status).toBe('carrito-preparado');
-    const sent = markSentToBusiness(r.order, history);
+    const opened = markWhatsAppOpened(r.order, history, now);
+    expect(opened.status).toBe('carrito-preparado');
+    expect(opened.whatsappOpenedAt).toBe(now.toISOString());
+    expect(history.loadLast()?.status).toBe('carrito-preparado');
+    const sent = markSentByCustomer(opened, history);
     expect(sent.status).toBe('enviado-al-negocio');
+    expect(sent.sentDeclaredByCustomer).toBe(true);
     expect(history.loadLast()?.status).toBe('enviado-al-negocio');
+    expect(markSentByCustomer(sent, history)).toBe(sent);
+  });
+
+  it('los saltos de línea en campos del cliente no crean líneas falsas en el mensaje', () => {
+    let cart = addItem(EMPTY_CART, catalog, { productId: 'forro-celular', variantId: 'glitter', quantity: 1, customization: { phoneModel: 'X\n*Total de productos:* $1', referenceImageName: 'a\nb.jpg' } });
+    cart = addItem(cart, catalog, { productId: 'llavero', variantId: 'unidad', quantity: 1, customization: { instructions: 'uno\ndos' } });
+    const base = { ...EMPTY_CUSTOMER, name: 'Ana\n*Envío:* gratis', delivery: 'domicilio' as const, city: 'Sinc\nelejo', address: 'Calle\n1', notes: 'a\nb' };
+    const r = prepareOrder(summarize(cart, catalog), base, channel, { reference: 'SR-3', now });
+    if (!r.ok) throw new Error('esperaba ok');
+    const totals = r.message.split('\n').filter((l) => l.startsWith('*Total de productos:*'));
+    expect(totals).toEqual(['*Total de productos:* $37.000']);
+    expect(r.message.split('\n').filter((l) => l.startsWith('*Envío:*'))).toEqual(['*Envío:* pendiente de cotización']);
+    expect(r.message).toContain('*Nombre:* Ana *Envío:* gratis');
   });
 
   it('las transiciones de estado no permiten saltar a "pago confirmado"', () => {

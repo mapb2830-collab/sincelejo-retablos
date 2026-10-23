@@ -25,7 +25,13 @@ export function QuantityInput({ value, onChange, label }: { value: number; onCha
         step={1}
         value={draft}
         aria-label="Cantidad"
-        onChange={(e) => setDraft(e.target.value.replace(/[^\d]/g, '').slice(0, 3))}
+        onChange={(e) => {
+          const next = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
+          setDraft(next);
+          // Actualiza totales mientras se escribe si el valor ya es válido; los vacíos o 0 se corrigen al salir.
+          const n = Number.parseInt(next, 10);
+          if (n >= MIN_QTY && n <= MAX_QTY && n !== value) onChange(n);
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {

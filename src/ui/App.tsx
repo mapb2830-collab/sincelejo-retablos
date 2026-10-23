@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Footer, Header, WhatsAppFab } from './components/Layout';
 import { CartProvider } from './hooks/CartContext';
 import { ToastProvider } from './hooks/ToastContext';
@@ -55,7 +56,9 @@ export function App() {
         </a>
         <Header route={route} />
         <main id="contenido" tabIndex={-1}>
-          <Page route={route} />
+          <ErrorBoundary resetKey={route}>
+            <Page route={route} />
+          </ErrorBoundary>
         </main>
         <Footer />
         <WhatsAppFab />

@@ -17,7 +17,13 @@ export type Route =
   | { name: 'no-encontrado' };
 
 export function parseHash(hash: string): Route {
-  const path = decodeURIComponent(hash.replace(/^#/, '')).replace(/\/+$/, '') || '/';
+  let path: string;
+  try {
+    path = decodeURIComponent(hash.replace(/^#/, '')).replace(/\/+$/, '') || '/';
+  } catch {
+    // Enlace truncado o mal codificado (p. ej. "%E0%A4%A"): no debe romper la tienda.
+    return { name: 'no-encontrado' };
+  }
   const parts = path.split('/').filter(Boolean);
   const [first, second] = parts;
   if (!first) return { name: 'inicio' };

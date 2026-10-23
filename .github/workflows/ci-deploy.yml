@@ -9,9 +9,10 @@ on:
 permissions:
   contents: read
 
+# No se cancela un despliegue en curso (recomendación de GitHub Pages).
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test-build:
@@ -23,11 +24,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Obtiene la URL real de Pages (subdirectorio, usuario.github.io o dominio propio).
+      - id: pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
         env:
-          VITE_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          VITE_SITE_URL: ${{ steps.pages.outputs.base_url }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:
