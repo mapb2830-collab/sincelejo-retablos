@@ -88,7 +88,7 @@ export function CartPage() {
                   </details>
                   {line.customization.referenceImageName && (
                     <p className="cart-line__file">
-                      <Icon name="image" size={16} /> {line.customization.referenceImageName} <small>(envíala por WhatsApp)</small>
+                      <Icon name="image" size={16} /> {line.customization.referenceImageName}
                     </p>
                   )}
                 </div>
